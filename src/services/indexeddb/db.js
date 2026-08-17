@@ -7,7 +7,7 @@ const DB_VERSION = 3;
 
 export async function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, _oldVersion, _newVersion, transaction) {
       if (!db.objectStoreNames.contains('products')) {
         const products = db.createObjectStore('products', { keyPath: 'id' });
         products.createIndex('sku', 'sku', { unique: false });
@@ -63,7 +63,7 @@ export async function getDB() {
         queue.createIndex('nextRetryAt', 'nextRetryAt', { unique: false });
         queue.createIndex('idempotencyKey', 'idempotencyKey', { unique: false });
       } else {
-        const queue = db.transaction.objectStore('sync_queue');
+        const queue = transaction.objectStore('sync_queue');
         if (!queue.indexNames.contains('nextRetryAt')) queue.createIndex('nextRetryAt', 'nextRetryAt', { unique: false });
         if (!queue.indexNames.contains('idempotencyKey')) queue.createIndex('idempotencyKey', 'idempotencyKey', { unique: false });
       }
