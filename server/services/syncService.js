@@ -1,94 +1,100 @@
 import { supabase, isSupabaseConfigured } from '../config/db.js';
 import { logger } from '../utils/logger.js';
 
-const memoryStore = { products: [], sales: [], inventory_logs: [] };
-
-// Deduplication store: tracks recent transactions within 10-second window
-// Format: { idempotencyKey: { timestamp, processed: boolean } }
-const deduplicationStore = new Map();
-const DEDUP_WINDOW_MS = 10_000;
-
-// Cleanup old deduplication entries every minute
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, data] of deduplicationStore.entries()) {
-    if (now - data.timestamp > DEDUP_WINDOW_MS) {
-      deduplicationStore.delete(key);
-    }
-  }
-}, 60_000);
-
-export function isDuplicateTransaction(idempotencyKey) {
-  if (!idempotencyKey) return false;
-  return deduplicationStore.has(idempotencyKey);
-}
-
-export function markTransactionProcessed(idempotencyKey) {
-  if (idempotencyKey) {
-    deduplicationStore.set(idempotencyKey, {
-      timestamp: Date.now(),
-      processed: true,
-    });
-  }
-}
+const memoryStore = {
+  products: [],
+  sales: [],
+  inventory_logs: [],
+  sale_items: [],
+};
 
 export async function applySyncAction(item) {
-  const { action, payload, idempotencyKey } = item;
+  const { action, payload } = item;
   logger('info', 'Applying sync action', { action, id: item.id });
 
-  // Check for duplicate transactions
-  if (action === 'CREATE_SALE' && isDuplicateTransaction(idempotencyKey)) {
-    logger('warn', 'Duplicate transaction detected', { idempotencyKey });
-    return { ok: true, isDuplicate: true };
-  }
-
   if (!isSupabaseConfigured()) {
-    const result = applyToMemory(action, payload);
-    if (action === 'CREATE_SALE') {
-      markTransactionProcessed(idempotencyKey);
-    }
-    return result;
+    return applyToMemory(action, payload);
   }
 
   switch (action) {
     case 'CREATE_PRODUCT':
-      return supabase.from('products').upsert(mapProduct(payload));
     case 'UPDATE_PRODUCT':
       return supabase.from('products').upsert(mapProduct(payload));
+
     case 'ARCHIVE_PRODUCT':
-      return supabase.from('products').update({ archived: true }).eq('id', payload.id);
-    case 'CREATE_SALE':
-      await supabase.from('sales').upsert(mapSale(payload.sale));
-      if (payload.items?.length) {
-        await supabase.from('sale_items').upsert(payload.items.map(mapSaleItem));
+      return supabase.from('products').update({ archived: true, updated_at: new Date().toISOString() }).eq('id', payload.id);
+
+    case 'CREATE_SALE': {
+      const { data, error } = await supabase.rpc('apply_sale_atomic', {
+        p_sale: mapSale(payload.sale),
+        p_items: (payload.items || []).map(mapSaleItem),
+      });
+
+      if (error) {
+        logger('error', 'Atomic sale sync failed', { id: item.id, error: error.message });
+        throw error;
       }
-      markTransactionProcessed(idempotencyKey);
-      return { ok: true };
+      return data || { ok: true };
+    }
+
     case 'INVENTORY_ADJUST':
       return supabase.from('inventory_logs').upsert(mapInventoryLog(payload));
+
     default:
-      logger('warn', 'Unknown sync action', { action });
-      return { ok: true };
+      throw new Error(`Unknown sync action: ${action}`);
   }
 }
 
 function applyToMemory(action, payload) {
   switch (action) {
     case 'CREATE_PRODUCT':
-    case 'UPDATE_PRODUCT':
-      memoryStore.products = memoryStore.products.filter((p) => p.id !== payload.id);
-      memoryStore.products.push(payload);
-      break;
-    case 'CREATE_SALE':
+    case 'UPDATE_PRODUCT': {
+      const existing = memoryStore.products.find((p) => p.id === payload.id);
+      if (existing) Object.assign(existing, payload);
+      else memoryStore.products.push(payload);
+      return { ok: true };
+    }
+
+    case 'CREATE_SALE': {
+      if (memoryStore.sales.some((sale) => sale.id === payload.sale.id)) {
+        return { ok: true, is_duplicate: true };
+      }
+
+      for (const item of payload.items || []) {
+        const product = memoryStore.products.find((p) => p.id === item.product_id);
+        if (product && product.quantity < item.quantity) {
+          throw new Error(`Insufficient stock for ${product.name}`);
+        }
+      }
+
+      for (const item of payload.items || []) {
+        const product = memoryStore.products.find((p) => p.id === item.product_id);
+        if (!product) throw new Error(`Product unavailable: ${item.product_id}`);
+        product.quantity -= item.quantity;
+        memoryStore.sale_items.push(mapSaleItem(item));
+        memoryStore.inventory_logs.push(mapInventoryLog({
+          id: `sale_${payload.sale.id}_${item.product_id}`,
+          product_id: item.product_id,
+          type: 'SALE',
+          quantity: -item.quantity,
+          reference_id: payload.sale.id,
+          reference_type: 'sale',
+          created_at: payload.sale.created_at,
+        }));
+      }
+
       memoryStore.sales.push(payload.sale);
-      break;
+      return { ok: true, is_duplicate: false };
+    }
+
     case 'INVENTORY_ADJUST':
-      memoryStore.inventory_logs.push(payload);
-      break;
+      memoryStore.inventory_logs = memoryStore.inventory_logs.filter((log) => log.id !== payload.id);
+      memoryStore.inventory_logs.push(mapInventoryLog(payload));
+      return { ok: true };
+
     default:
-      break;
+      throw new Error(`Unknown sync action: ${action}`);
   }
-  return { ok: true };
 }
 
 function mapProduct(p) {
@@ -105,7 +111,7 @@ function mapProduct(p) {
     image_id: p.image_id,
     archived: p.archived ?? false,
     created_at: p.created_at,
-    updated_at: p.updated_at,
+    updated_at: p.updated_at || new Date().toISOString(),
   };
 }
 
@@ -132,10 +138,12 @@ function mapSaleItem(i) {
 
 function mapInventoryLog(l) {
   return {
-    id: l.id,
+    id: l.id || `inv_${Date.now()}_${l.product_id}`,
     product_id: l.product_id,
     type: l.type,
     quantity: l.quantity,
-    created_at: l.created_at,
+    reference_id: l.reference_id,
+    reference_type: l.reference_type,
+    created_at: l.created_at || new Date().toISOString(),
   };
 }
