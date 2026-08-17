@@ -27,15 +27,14 @@ export async function handleSync(req, res) {
       return res.status(403).json({ message: 'You are not allowed to sync this action' });
     }
 
+    item.actor_id = req.user.id;
+
     if (item.action === 'CREATE_SALE') {
       const sale = item.payload?.sale;
       if (!sale?.id || !Array.isArray(item.payload.items) || item.payload.items.length === 0) {
         return res.status(400).json({ message: 'Invalid sale payload' });
       }
 
-      // Offline users can have a device-local ID. Once they authenticate
-      // online, reconcile that local identity to the signed server identity
-      // using the immutable email captured at checkout.
       const emailMatches = sale.cashier_email && sale.cashier_email.toLowerCase() === req.user.email.toLowerCase();
       const idMatches = sale.cashier_id && sale.cashier_id === req.user.id;
       if (!emailMatches && !idMatches) {
