@@ -71,6 +71,7 @@ export default function POSPage() {
         id: saleId,
         invoice_number: invoiceNumber,
         cashier_id: user.id,
+        cashier_email: user.email,
         cashier_name: user.name,
         subtotal: cart.subtotal,
         discount: cart.discount,
