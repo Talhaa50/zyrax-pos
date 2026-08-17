@@ -28,12 +28,21 @@ export async function handleSync(req, res) {
     }
 
     if (item.action === 'CREATE_SALE') {
-      if (!item.payload?.sale?.id || !Array.isArray(item.payload.items) || item.payload.items.length === 0) {
+      const sale = item.payload?.sale;
+      if (!sale?.id || !Array.isArray(item.payload.items) || item.payload.items.length === 0) {
         return res.status(400).json({ message: 'Invalid sale payload' });
       }
-      if (item.payload.sale.cashier_id && item.payload.sale.cashier_id !== req.user.id) {
+
+      // Offline users can have a device-local ID. Once they authenticate
+      // online, reconcile that local identity to the signed server identity
+      // using the immutable email captured at checkout.
+      const emailMatches = sale.cashier_email && sale.cashier_email.toLowerCase() === req.user.email.toLowerCase();
+      const idMatches = sale.cashier_id && sale.cashier_id === req.user.id;
+      if (!emailMatches && !idMatches) {
         return res.status(403).json({ message: 'Sale cashier does not match authenticated user' });
       }
+
+      item.payload.sale = { ...sale, cashier_id: req.user.id, cashier_email: req.user.email };
     }
 
     const result = await applySyncAction(item);
