@@ -1,14 +1,44 @@
 import { applySyncAction } from '../services/syncService.js';
 
+const CASHIER_ACTIONS = new Set(['CREATE_SALE']);
+const ADMIN_ACTIONS = new Set([
+  'CREATE_PRODUCT',
+  'UPDATE_PRODUCT',
+  'ARCHIVE_PRODUCT',
+  'INVENTORY_ADJUST',
+  'CREATE_SALE',
+]);
+const MAX_PAYLOAD_BYTES = 512 * 1024;
+
 export async function handleSync(req, res) {
   try {
     const item = req.body;
-    if (!item?.action) {
+    if (!item || typeof item !== 'object' || !item.action || !item.id) {
       return res.status(400).json({ message: 'Invalid sync payload' });
     }
-    await applySyncAction(item);
-    res.json({ success: true, id: item.id });
+
+    const payloadSize = Buffer.byteLength(JSON.stringify(item), 'utf8');
+    if (payloadSize > MAX_PAYLOAD_BYTES) {
+      return res.status(413).json({ message: 'Sync payload is too large' });
+    }
+
+    const allowed = req.user?.role === 'admin' ? ADMIN_ACTIONS : CASHIER_ACTIONS;
+    if (!allowed.has(item.action)) {
+      return res.status(403).json({ message: 'You are not allowed to sync this action' });
+    }
+
+    if (item.action === 'CREATE_SALE') {
+      if (!item.payload?.sale?.id || !Array.isArray(item.payload.items) || item.payload.items.length === 0) {
+        return res.status(400).json({ message: 'Invalid sale payload' });
+      }
+      if (item.payload.sale.cashier_id && item.payload.sale.cashier_id !== req.user.id) {
+        return res.status(403).json({ message: 'Sale cashier does not match authenticated user' });
+      }
+    }
+
+    const result = await applySyncAction(item);
+    return res.json({ success: true, id: item.id, result });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: err.message });
   }
 }
