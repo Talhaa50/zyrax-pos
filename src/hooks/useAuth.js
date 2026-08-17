@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDB, seedDatabase } from '../services/indexeddb/db';
+import { verifyPassword } from '../utils/password';
 import { ROLES } from '../constants/roles';
 
 const SESSION_KEY = 'retailer_session';
+const TOKEN_KEY = 'retailer_token';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function getStoredSession() {
   try {
@@ -11,6 +14,19 @@ function getStoredSession() {
   } catch {
     return null;
   }
+}
+
+async function tryServerLogin(email, password) {
+  if (!navigator.onLine) return null;
+
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) return null;
+  return response.json();
 }
 
 export function useAuth() {
@@ -22,11 +38,26 @@ export function useAuth() {
   }, []);
 
   const login = useCallback(async (email, password) => {
-    const db = await getDB();
-    const users = await db.getAllFromIndex('users', 'email', email.toLowerCase());
-    const found = users.find((u) => u.email === email.toLowerCase() && u.active);
+    const normalizedEmail = email.trim().toLowerCase();
 
-    if (!found || found.password !== password) {
+    try {
+      const serverSession = await tryServerLogin(normalizedEmail, password);
+      if (serverSession?.user && serverSession?.token) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(serverSession.user));
+        localStorage.setItem(TOKEN_KEY, serverSession.token);
+        setUser(serverSession.user);
+        return serverSession.user;
+      }
+    } catch {
+      // Fall back to the local credential store so the POS remains usable offline.
+    }
+
+    const db = await getDB();
+    const users = await db.getAllFromIndex('users', 'email', normalizedEmail);
+    const found = users.find((u) => u.email === normalizedEmail && u.active);
+
+    const valid = found && await verifyPassword(password, found.passwordHash, found.passwordSalt);
+    if (!valid) {
       throw new Error('Invalid email or password');
     }
 
@@ -35,17 +66,19 @@ export function useAuth() {
       name: found.name,
       email: found.email,
       role: found.role,
+      offline: true,
     };
 
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    localStorage.setItem('retailer_token', `local_${found.id}`);
+    localStorage.setItem(TOKEN_KEY, `local_${found.id}`);
     setUser(session);
     return session;
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem('retailer_token');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem('retailer_last_sync');
     setUser(null);
   }, []);
 
