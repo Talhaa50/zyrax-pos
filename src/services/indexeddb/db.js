@@ -1,8 +1,9 @@
 import { openDB } from 'idb';
 import { generateId } from '../../utils/generateInvoiceNumber';
+import { hashPassword } from '../../utils/password';
 
 const DB_NAME = 'retailer_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export async function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
@@ -39,6 +40,13 @@ export async function getDB() {
         logs.createIndex('created_at', 'created_at', { unique: false });
       }
 
+      if (!db.objectStoreNames.contains('audit_logs')) {
+        const logs = db.createObjectStore('audit_logs', { keyPath: 'id' });
+        logs.createIndex('entity_type', 'entity_type', { unique: false });
+        logs.createIndex('entity_id', 'entity_id', { unique: false });
+        logs.createIndex('created_at', 'created_at', { unique: false });
+      }
+
       if (!db.objectStoreNames.contains('customers')) {
         db.createObjectStore('customers', { keyPath: 'id' });
       }
@@ -52,6 +60,12 @@ export async function getDB() {
         const queue = db.createObjectStore('sync_queue', { keyPath: 'id' });
         queue.createIndex('status', 'status', { unique: false });
         queue.createIndex('createdAt', 'createdAt', { unique: false });
+        queue.createIndex('nextRetryAt', 'nextRetryAt', { unique: false });
+        queue.createIndex('idempotencyKey', 'idempotencyKey', { unique: false });
+      } else {
+        const queue = db.transaction.objectStore('sync_queue');
+        if (!queue.indexNames.contains('nextRetryAt')) queue.createIndex('nextRetryAt', 'nextRetryAt', { unique: false });
+        if (!queue.indexNames.contains('idempotencyKey')) queue.createIndex('idempotencyKey', 'idempotencyKey', { unique: false });
       }
 
       if (!db.objectStoreNames.contains('settings')) {
@@ -61,29 +75,46 @@ export async function getDB() {
   });
 }
 
+async function migrateLegacyPasswords(db) {
+  const users = await db.getAll('users');
+  for (const user of users) {
+    if (!user.password || user.passwordHash) continue;
+    const credentials = await hashPassword(user.password);
+    const { password: _legacyPassword, ...safeUser } = user;
+    await db.put('users', { ...safeUser, ...credentials });
+  }
+}
+
 export async function seedDatabase() {
   const db = await getDB();
+  await migrateLegacyPasswords(db);
+
   const userCount = await db.count('users');
   if (userCount > 0) return;
+
+  const [adminCredentials, cashierCredentials] = await Promise.all([
+    hashPassword('admin123'),
+    hashPassword('cashier123'),
+  ]);
 
   const defaultUsers = [
     {
       id: generateId('user'),
       name: 'Admin User',
       email: 'admin@retailer.com',
-      password: 'admin123',
       role: 'admin',
       active: true,
       created_at: new Date().toISOString(),
+      ...adminCredentials,
     },
     {
       id: generateId('user'),
       name: 'Cashier User',
       email: 'cashier@retailer.com',
-      password: 'cashier123',
       role: 'cashier',
       active: true,
       created_at: new Date().toISOString(),
+      ...cashierCredentials,
     },
   ];
 
@@ -97,8 +128,8 @@ export async function seedDatabase() {
     key: 'business',
     value: {
       business_name: 'My Retail Shop',
-      currency: 'USD',
-      tax_rate: 10,
+      currency: 'GHS',
+      tax_rate: 0,
       receipt_footer: 'Thank you for shopping with us!',
       low_stock_threshold: 10,
       preset: 'classic-blue',
