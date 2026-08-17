@@ -12,24 +12,27 @@ export async function applySyncAction(item) {
   const { action, payload } = item;
   logger('info', 'Applying sync action', { action, id: item.id });
 
-  if (!isSupabaseConfigured()) {
-    return applyToMemory(action, payload);
-  }
+  if (!isSupabaseConfigured()) return applyToMemory(action, payload);
 
+  let result;
   switch (action) {
     case 'CREATE_PRODUCT':
     case 'UPDATE_PRODUCT':
-      return supabase.from('products').upsert(mapProduct(payload));
+      result = await supabase.from('products').upsert(mapProduct(payload));
+      break;
 
     case 'ARCHIVE_PRODUCT':
-      return supabase.from('products').update({ archived: true, updated_at: new Date().toISOString() }).eq('id', payload.id);
+      result = await supabase
+        .from('products')
+        .update({ archived: true, updated_at: new Date().toISOString() })
+        .eq('id', payload.id);
+      break;
 
     case 'CREATE_SALE': {
       const { data, error } = await supabase.rpc('apply_sale_atomic', {
         p_sale: mapSale(payload.sale),
         p_items: (payload.items || []).map(mapSaleItem),
       });
-
       if (error) {
         logger('error', 'Atomic sale sync failed', { id: item.id, error: error.message });
         throw error;
@@ -38,10 +41,32 @@ export async function applySyncAction(item) {
     }
 
     case 'INVENTORY_ADJUST':
-      return supabase.from('inventory_logs').upsert(mapInventoryLog(payload));
+      result = await supabase.from('inventory_logs').upsert(mapInventoryLog(payload));
+      break;
 
     default:
       throw new Error(`Unknown sync action: ${action}`);
+  }
+
+  if (result.error) throw result.error;
+  await recordAudit(item);
+  return result;
+}
+
+async function recordAudit(item) {
+  try {
+    const payload = item.payload || {};
+    await supabase.from('audit_logs').upsert({
+      id: `sync_${item.id}`,
+      action: item.action,
+      entity_type: item.action.includes('PRODUCT') ? 'product' : 'inventory',
+      entity_id: payload.id || payload.product_id || item.id,
+      actor_id: item.actor_id || payload.actor_id || null,
+      metadata: { sync_id: item.id },
+      created_at: item.createdAt || new Date().toISOString(),
+    });
+  } catch (error) {
+    logger('warn', 'Audit log write failed', { id: item.id, error: error.message });
   }
 }
 
@@ -56,15 +81,11 @@ function applyToMemory(action, payload) {
     }
 
     case 'CREATE_SALE': {
-      if (memoryStore.sales.some((sale) => sale.id === payload.sale.id)) {
-        return { ok: true, is_duplicate: true };
-      }
+      if (memoryStore.sales.some((sale) => sale.id === payload.sale.id)) return { ok: true, is_duplicate: true };
 
       for (const item of payload.items || []) {
         const product = memoryStore.products.find((p) => p.id === item.product_id);
-        if (product && product.quantity < item.quantity) {
-          throw new Error(`Insufficient stock for ${product.name}`);
-        }
+        if (product && product.quantity < item.quantity) throw new Error(`Insufficient stock for ${product.name}`);
       }
 
       for (const item of payload.items || []) {
