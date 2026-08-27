@@ -1,54 +1,67 @@
 import { useEffect, useState } from 'react';
-import { getSalesByDateRange } from '../../services/indexeddb/salesStore';
-import { formatDate } from '../../utils/formatCurrency';
+import { salesApi } from '../../services/api/salesApi';
 import { useBusinessSettings } from '../../hooks/useBusinessSettings';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function CashierDashboard() {
-  const [data, setData] = useState(null);
+  const { user } = useAuth();
+  const [sales, setSales] = useState([]);
   const { formatMoney } = useBusinessSettings();
 
   useEffect(() => {
-    async function load() {
-      const today = new Date().toISOString().slice(0, 10);
-      const sales = await getSalesByDateRange(today, today);
-      setData({
-        total: sales.reduce((s, x) => s + x.total, 0),
-        count: sales.length,
-        recent: sales.slice(-5).reverse(),
-      });
-    }
-    load();
-  }, []);
+    const loadSales = async () => {
+      try {
+        const data = await salesApi.getAll({ cashier_id: user.id, limit: 10 });
+        setSales(data);
+      } catch (err) {
+        console.error('Failed to load sales:', err);
+      }
+    };
+    loadSales();
+  }, [user]);
 
-  if (!data) return null;
+  const today = sales.filter(s => 
+    new Date(s.created_at).toDateString() === new Date().toDateString()
+  );
+  const todayRevenue = today.reduce((sum, s) => sum + s.total, 0);
 
   return (
-    <div className="p-6">
-      <h1 className="mb-6 text-2xl font-bold">Today's Summary</h1>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm text-gray-500">Total Sales</p>
-          <p className="text-2xl font-bold">{formatMoney(data.total)}</p>
+    <div>
+      <h2 className="mb-6 text-2xl font-bold">My Sales</h2>
+      
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border p-6">
+          <p className="text-sm text-gray-500">Today's Sales</p>
+          <p className="mt-2 text-3xl font-bold">{formatMoney(todayRevenue)}</p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+        <div className="rounded-xl border p-6">
           <p className="text-sm text-gray-500">Transactions</p>
-          <p className="text-2xl font-bold">{data.count}</p>
+          <p className="mt-2 text-3xl font-bold">{today.length}</p>
+        </div>
+        <div className="rounded-xl border p-6">
+          <p className="text-sm text-gray-500">Average Sale</p>
+          <p className="mt-2 text-3xl font-bold">
+            {today.length > 0 ? formatMoney(todayRevenue / today.length) : formatMoney(0)}
+          </p>
         </div>
       </div>
-      {data.recent.length > 0 && (
-        <div className="mt-6">
-          <h2 className="mb-3 font-semibold">Recent Transactions</h2>
-          <div className="space-y-2">
-            {data.recent.map((s) => (
-              <div key={s.id} className="flex justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-800">
-                <span>{s.invoice_number}</span>
-                <span className="text-gray-500">{formatDate(s.created_at)}</span>
-                <span className="font-medium">{formatMoney(s.total)}</span>
+
+      <div className="rounded-xl border p-6">
+        <h3 className="mb-4 font-semibold">Recent Transactions</h3>
+        <div className="space-y-3">
+          {sales.slice(0, 10).map((sale) => (
+            <div key={sale.id} className="flex justify-between border-b pb-2">
+              <div>
+                <p className="font-medium">{sale.invoice_number}</p>
+                <p className="text-sm text-gray-500">
+                  {new Date(sale.created_at).toLocaleString()}
+                </p>
               </div>
-            ))}
-          </div>
+              <p className="font-semibold">{formatMoney(sale.total)}</p>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

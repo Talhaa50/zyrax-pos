@@ -5,6 +5,8 @@ const items = [
   { to: '/admin/products', label: 'Products' },
   { to: '/admin/inventory', label: 'Stock' },
   { to: '/admin/sales', label: 'Sales' },
+  { to: '/admin/khata', label: 'Khata' },
+  { to: '/admin/expenses', label: 'Expenses' },
   { to: '/admin/reports', label: 'Reports' },
   { to: '/pos', label: 'POS' },
 ];

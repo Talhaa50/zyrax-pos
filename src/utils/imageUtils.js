@@ -55,6 +55,16 @@ export function compressImage(file) {
   });
 }
 
+const API_BASE = typeof window !== 'undefined'
+  ? (import.meta.env?.VITE_API_URL || 'http://localhost:3001')
+  : 'http://localhost:3001';
+
+// Build a URL for a product image stored on the Express server
 export function getProductImageSrc(product) {
-  return product?.image || product?.image_data || null;
+  if (!product) return null;
+  const imageId = product.image_id;
+  if (!imageId) return null;
+  // Already a full URL or data URI (legacy)
+  if (imageId.startsWith('http') || imageId.startsWith('data:')) return imageId;
+  return `${API_BASE}/uploads/products/${imageId}`;
 }

@@ -1,14 +1,15 @@
 export const CURRENCY_OPTIONS = [
+  { code: 'PKR', label: 'Pakistani Rupee (PKR)' },
   { code: 'USD', label: 'US Dollar (USD)' },
   { code: 'EUR', label: 'Euro (EUR)' },
   { code: 'GBP', label: 'British Pound (GBP)' },
+  { code: 'INR', label: 'Indian Rupee (INR)' },
   { code: 'KES', label: 'Kenyan Shilling (KES)' },
   { code: 'NGN', label: 'Nigerian Naira (NGN)' },
   { code: 'ZAR', label: 'South African Rand (ZAR)' },
   { code: 'GHS', label: 'Ghanaian Cedi (GHS)' },
   { code: 'UGX', label: 'Ugandan Shilling (UGX)' },
   { code: 'TZS', label: 'Tanzanian Shilling (TZS)' },
-  { code: 'INR', label: 'Indian Rupee (INR)' },
   { code: 'CAD', label: 'Canadian Dollar (CAD)' },
   { code: 'AUD', label: 'Australian Dollar (AUD)' },
 ];

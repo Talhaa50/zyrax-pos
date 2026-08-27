@@ -3,9 +3,33 @@
 @tailwind utilities;
 
 @layer base {
+  /* ─────────────────────────────────────────────────────
+     Dark mode — warm black palette (single source of truth)
+  ───────────────────────────────────────────────────── */
+  :root {
+    --bg-base:        #f5f5f7;
+    --bg-surface:     #ffffff;
+    --bg-elevated:    #ffffff;
+    --bg-border:      rgba(0,0,0,0.06);
+    --text-primary:   #111110;
+    --text-secondary: #6b7280;
+    --text-muted:     #9ca3af;
+  }
+
+  .dark {
+    --bg-base:        #0f0f0d;
+    --bg-surface:     #1a1917;
+    --bg-elevated:    #242220;
+    --bg-border:      rgba(255,255,255,0.07);
+    --text-primary:   #f0ede8;
+    --text-secondary: #a8a29e;
+    --text-muted:     #78716c;
+  }
+
+  /* Brand color presets */
   :root,
   [data-preset='classic-blue'] {
-    --brand-50: 239 246 255;
+    --brand-50:  239 246 255;
     --brand-100: 219 234 254;
     --brand-200: 191 219 254;
     --brand-300: 147 197 253;
@@ -19,7 +43,7 @@
   }
 
   [data-preset='emerald-market'] {
-    --brand-50: 236 253 245;
+    --brand-50:  236 253 245;
     --brand-100: 209 250 229;
     --brand-200: 167 243 208;
     --brand-300: 110 231 183;
@@ -33,7 +57,7 @@
   }
 
   [data-preset='ruby-retail'] {
-    --brand-50: 255 241 242;
+    --brand-50:  255 241 242;
     --brand-100: 255 228 230;
     --brand-200: 254 205 211;
     --brand-300: 253 164 175;
@@ -47,7 +71,7 @@
   }
 
   [data-preset='gold-ledger'] {
-    --brand-50: 255 251 235;
+    --brand-50:  255 251 235;
     --brand-100: 254 243 199;
     --brand-200: 253 230 138;
     --brand-300: 252 211 77;
@@ -61,7 +85,7 @@
   }
 
   [data-preset='violet-studio'] {
-    --brand-50: 245 243 255;
+    --brand-50:  245 243 255;
     --brand-100: 237 233 254;
     --brand-200: 221 214 254;
     --brand-300: 196 181 253;
@@ -81,33 +105,86 @@
   }
 
   body {
-    @apply bg-surface-secondary font-sans text-gray-900 dark:bg-black dark:text-gray-100;
+    @apply font-sans;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+  }
+
+  /* ── Typography ── */
+  h1 {
+    @apply font-heading text-3xl font-bold tracking-tight;
+    color: var(--text-primary);
   }
 
   h2 {
-    @apply font-heading text-2xl font-semibold tracking-tight text-gray-900 dark:text-white;
+    @apply font-heading text-2xl font-semibold tracking-tight;
+    color: var(--text-primary);
   }
 
   h3 {
-    @apply font-heading text-xl font-semibold tracking-tight text-gray-900 dark:text-white;
+    @apply font-heading text-xl font-semibold tracking-tight;
+    color: var(--text-primary);
   }
+
+  /* ── Dark mode: ensure gray-* utilities read properly ── */
+  .dark .text-gray-900 { color: #f0ede8; }
+  .dark .text-gray-800 { color: #e5e0d8; }
+  .dark .text-gray-700 { color: #d4cfc8; }
+  .dark .text-gray-600 { color: #a8a29e; }
+  .dark .text-gray-500 { color: #78716c; }
+  .dark .text-gray-400 { color: #57534e; }
+
+  /* ── Dark: border defaults ── */
+  .dark .border-gray-100 { border-color: rgba(255,255,255,0.06); }
+  .dark .border-gray-200 { border-color: rgba(255,255,255,0.08); }
+  .dark .divide-gray-100 > * + * { border-color: rgba(255,255,255,0.05); }
+  .dark .divide-gray-200 > * + * { border-color: rgba(255,255,255,0.07); }
 }
 
 @layer components {
+  /* ── Glassmorphism nav ── */
   .glass-nav {
-    @apply border-b border-black/[0.06] bg-white/80 backdrop-blur-ios backdrop-saturate-150 dark:border-white/[0.08] dark:bg-surface-dark/80;
+    @apply border-b backdrop-blur-ios backdrop-saturate-150;
+    border-color: var(--bg-border);
+    background-color: color-mix(in srgb, var(--bg-surface) 85%, transparent);
   }
 
+  /* ── Card ── */
   .ios-card {
-    @apply rounded-3xl border border-black/[0.04] bg-white shadow-ios dark:border-white/[0.06] dark:bg-surface-dark dark:shadow-none;
+    @apply rounded-3xl border shadow-ios;
+    background-color: var(--bg-surface);
+    border-color: var(--bg-border);
+  }
+  .dark .ios-card {
+    box-shadow: none;
   }
 
+  /* ── Pill ── */
   .ios-pill {
     @apply rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-ios;
   }
 
+  /* ── Sidebar nav item ── */
   .ios-menu-item {
-    @apply flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium text-gray-700 transition-all duration-150 ease-ios hover:bg-black/[0.04] active:scale-[0.98] dark:text-gray-200 dark:hover:bg-white/[0.06];
+    @apply flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition-all duration-150 ease-ios;
+    color: var(--text-secondary);
+  }
+  .ios-menu-item:hover {
+    background-color: var(--bg-border);
+  }
+  .ios-menu-item:active {
+    transform: scale(0.98);
+  }
+
+  /* ── Form inputs ── */
+  .form-input {
+    @apply w-full rounded-xl border px-3.5 py-2.5 text-sm font-medium shadow-ios-inset transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/30;
+    background-color: var(--bg-surface);
+    border-color: var(--bg-border);
+    color: var(--text-primary);
+  }
+  .form-input::placeholder {
+    color: var(--text-muted);
   }
 }
 
@@ -115,20 +192,62 @@
   .scrollbar-thin {
     scrollbar-width: thin;
   }
+
+  /* Semantic background utilities */
+  .bg-base    { background-color: var(--bg-base); }
+  .bg-surface { background-color: var(--bg-surface); }
+  .bg-elevated{ background-color: var(--bg-elevated); }
+
+  /* Semantic text utilities */
+  .text-primary   { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-muted     { color: var(--text-muted); }
 }
 
+/* ── Print styles ──────────────────────────────────────────────────────────── */
 @media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
   body * {
     visibility: hidden;
   }
-  .receipt-print,
-  .receipt-print * {
-    visibility: visible;
+
+  #receipt-content,
+  #receipt-content * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  .receipt-print {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+
+  #receipt-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 12px;
+    page-break-inside: avoid !important;
+  }
+
+  @page {
+    margin: 8mm 10mm;
+    size: A4 portrait;
   }
 }
+
+

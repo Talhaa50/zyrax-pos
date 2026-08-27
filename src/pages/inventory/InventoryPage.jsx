@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getAllProducts } from '../../services/indexeddb/productsStore';
-import { getAllInventoryLogs, addInventoryLog, getInventorySummary } from '../../services/indexeddb/inventoryStore';
-import { addToSyncQueue } from '../../services/sync/syncQueue';
+import { productsApi } from '../../services/api/productsApi';
+import { inventoryApi } from '../../services/api/inventoryApi';
 import { useBusinessSettings } from '../../hooks/useBusinessSettings';
 import InventoryTable from '../../components/tables/InventoryTable';
 import StockAdjustForm from '../../components/forms/StockAdjustForm';
@@ -9,25 +8,28 @@ import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import { formatDate } from '../../utils/formatCurrency';
 import { useToast } from '../../components/ui/Toast';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function InventoryPage() {
   const [products, setProducts] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [summary, setSummary] = useState(null);
   const { currency, formatMoney } = useBusinessSettings();
   const [showAdjust, setShowAdjust] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
   const toast = useToast();
 
   const load = async () => {
-    const [prods, invLogs, invSummary] = await Promise.all([
-      getAllProducts(),
-      getAllInventoryLogs(),
-      getInventorySummary(),
-    ]);
-    setProducts(prods);
-    setLogs(invLogs.slice(0, 20));
-    setSummary(invSummary);
+    try {
+      const [prods, invLogs] = await Promise.all([
+        productsApi.getAll(),
+        inventoryApi.getLogs({ limit: 20 }),
+      ]);
+      setProducts(prods);
+      setLogs(invLogs);
+    } catch (err) {
+      toast.error('Could not load inventory data');
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -35,8 +37,7 @@ export default function InventoryPage() {
   const handleAdjust = async (data) => {
     setLoading(true);
     try {
-      const log = await addInventoryLog(data);
-      await addToSyncQueue('INVENTORY_ADJUST', log);
+      await inventoryApi.adjust({ ...data, actor_id: user.id });
       toast.success('Stock updated');
       setShowAdjust(false);
       load();
@@ -47,30 +48,34 @@ export default function InventoryPage() {
     }
   };
 
+  const totalValue   = products.reduce((s, p) => s + p.quantity * p.cost_price, 0);
+  const lowStockCount = products.filter(p => p.quantity <= p.reorder_level).length;
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h2>Inventory</h2>
         <Button onClick={() => setShowAdjust(true)}>Adjust Stock</Button>
       </div>
-      {summary && (
-        <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border p-4 dark:border-gray-800">
-            <p className="text-sm text-gray-500">Total Products</p>
-            <p className="text-2xl font-bold">{summary.products.length}</p>
-          </div>
-          <div className="rounded-xl border p-4 dark:border-gray-800">
-            <p className="text-sm text-gray-500">Inventory Value</p>
-            <p className="text-2xl font-bold">{formatMoney(summary.totalValue)}</p>
-          </div>
-          <div className="rounded-xl border border-yellow-300 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
-            <p className="text-sm text-gray-500">Low Stock Items</p>
-            <p className="text-2xl font-bold">{summary.lowStock.length}</p>
-          </div>
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border p-4 dark:border-gray-800">
+          <p className="text-sm text-gray-500">Total Products</p>
+          <p className="text-2xl font-bold">{products.length}</p>
         </div>
-      )}
+        <div className="rounded-xl border p-4 dark:border-gray-800">
+          <p className="text-sm text-gray-500">Inventory Value</p>
+          <p className="text-2xl font-bold">{formatMoney(totalValue)}</p>
+        </div>
+        <div className="rounded-xl border border-yellow-300 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+          <p className="text-sm text-gray-500">Low Stock Items</p>
+          <p className="text-2xl font-bold">{lowStockCount}</p>
+        </div>
+      </div>
+
       <h3 className="mb-3">Current Stock</h3>
       <InventoryTable products={products} currency={currency} />
+
       <h3 className="mb-3 mt-8">Recent Adjustments</h3>
       {logs.length === 0 ? (
         <div className="rounded-xl border border-dashed p-8 text-center text-gray-500 dark:border-gray-700">
@@ -89,8 +94,14 @@ export default function InventoryPage() {
           })}
         </div>
       )}
+
       <Modal open={showAdjust} onClose={() => setShowAdjust(false)} title="Adjust Stock">
-        <StockAdjustForm products={products} onSubmit={handleAdjust} onCancel={() => setShowAdjust(false)} loading={loading} />
+        <StockAdjustForm
+          products={products}
+          onSubmit={handleAdjust}
+          onCancel={() => setShowAdjust(false)}
+          loading={loading}
+        />
       </Modal>
     </div>
   );

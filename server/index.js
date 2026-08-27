@@ -1,41 +1,18 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import authRoutes from './routes/authRoutes.js';
-import productRoutes from './routes/productRoutes.js';
-import inventoryRoutes from './routes/inventoryRoutes.js';
-import salesRoutes from './routes/salesRoutes.js';
-import reportRoutes from './routes/reportRoutes.js';
-import syncRoutes from './routes/syncRoutes.js';
-import barcodeRoutes from './routes/barcodeRoutes.js';
-import { logger } from './utils/logger.js';
-import { syncRateLimiter, barcodeRateLimiter } from './middleware/rateLimitMiddleware.js';
+/**
+ * Server entry point bootstrap
+ * Loads .env FIRST using absolute path, then starts the app.
+ * This file is the ESM-safe way to run dotenv before any imports.
+ */
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import { config } from 'dotenv';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+// Load .env before any other module is imported
+config({ path: path.resolve(__dirname, '.env') });
 
-app.use(cors());
-app.use(express.json());
-
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/sales', salesRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/sync', syncRateLimiter, syncRoutes);
-app.use('/api/barcode', barcodeRateLimiter, barcodeRoutes);
-
-app.use((err, _req, res, _next) => {
-  logger('error', err.message);
-  res.status(500).json({ message: 'Internal server error' });
-});
-
-app.listen(PORT, () => {
-  logger('info', `Retailer API running on port ${PORT}`);
-});
+// Now dynamically import the app so all subsequent imports see process.env
+await import('./app.js');

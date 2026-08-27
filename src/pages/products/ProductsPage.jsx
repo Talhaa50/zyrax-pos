@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAllProducts, createProduct, updateProduct, archiveProduct } from '../../services/indexeddb/productsStore';
-import { addToSyncQueue } from '../../services/sync/syncQueue';
+import { productsApi } from '../../services/api/productsApi';
 import { useBusinessSettings } from '../../hooks/useBusinessSettings';
 import ProductTable from '../../components/tables/ProductTable';
 import ProductForm from '../../components/forms/ProductForm';
@@ -9,6 +8,7 @@ import { ConfirmModal } from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
+import { generateId } from '../../utils/generateInvoiceNumber';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -20,26 +20,29 @@ export default function ProductsPage() {
   const toast = useToast();
 
   const load = async () => {
-    const prods = await getAllProducts();
-    setProducts(prods);
+    try {
+      const prods = await productsApi.getAll();
+      setProducts(prods);
+    } catch (err) {
+      toast.error('Failed to load products');
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const filtered = products.filter((p) =>
-    !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku?.includes(search)
+    !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku?.includes(search) || p.barcode?.includes(search)
   );
 
   const handleSave = async (data) => {
     setLoading(true);
     try {
       if (modal?.product) {
-        const updated = await updateProduct(modal.product.id, data);
-        await addToSyncQueue('UPDATE_PRODUCT', updated);
+        await productsApi.update(modal.product.id, data);
         toast.success('Product updated');
       } else {
-        const created = await createProduct(data);
-        await addToSyncQueue('CREATE_PRODUCT', created);
+        const newProduct = { ...data, id: generateId('product') };
+        await productsApi.create(newProduct);
         toast.success('Product created');
       }
       setModal(null);
@@ -54,11 +57,12 @@ export default function ProductsPage() {
   const handleArchive = async () => {
     setLoading(true);
     try {
-      await archiveProduct(archiveTarget.id);
-      await addToSyncQueue('ARCHIVE_PRODUCT', { id: archiveTarget.id });
+      await productsApi.archive(archiveTarget.id);
       toast.success('Product archived');
       setArchiveTarget(null);
       load();
+    } catch (err) {
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }

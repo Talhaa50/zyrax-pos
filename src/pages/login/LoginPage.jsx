@@ -32,17 +32,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface-secondary p-4 dark:bg-black">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface-secondary p-4 dark:bg-[#0f0f0d]">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-brand-400/20 blur-3xl" />
         <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-brand-600/15 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md animate-fade-up">
-        <div className="ios-card p-8 sm:p-10">
+        <div className="ios-card p-8 sm:p-10 dark:border-white/[0.07] dark:bg-[#1a1917]">
           <div className="mb-10 text-center">
             <div className="mb-2 flex items-baseline justify-center gap-1.5">
-              <span className="font-brand text-5xl font-bold text-brand-600 dark:text-brand-400">Retailer</span>
+              <span className="font-brand text-5xl font-bold text-brand-600 dark:text-brand-400">Zyrax</span>
               <span className="font-sans text-xs font-semibold uppercase tracking-[0.15em] text-gray-400">POS</span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Offline-first POS & Inventory</p>
@@ -75,11 +75,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-8 rounded-2xl bg-black/[0.03] p-4 text-xs text-gray-500 dark:bg-white/[0.04] dark:text-gray-400">
-            <p className="font-semibold text-gray-700 dark:text-gray-300">Demo accounts</p>
-            <p className="mt-2">Admin: admin@retailer.com / admin123</p>
-            <p>Cashier: cashier@retailer.com / cashier123</p>
-          </div>
+
         </div>
       </div>
     </div>

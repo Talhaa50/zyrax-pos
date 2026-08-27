@@ -11,6 +11,9 @@ import InventoryPage from '../pages/inventory/InventoryPage';
 import POSPage from '../pages/sales/POSPage';
 import SalesHistoryPage from '../pages/sales/SalesHistoryPage';
 import SaleDetailPage from '../pages/sales/SaleDetailPage';
+import KhataPage from '../pages/khata/KhataPage';
+import CustomerLedgerPage from '../pages/khata/CustomerLedgerPage';
+import ExpensesPage from '../pages/expenses/ExpensesPage';
 import DailySalesReport from '../pages/reports/DailySalesReport';
 import ProductReport from '../pages/reports/ProductReport';
 import InventoryReport from '../pages/reports/InventoryReport';
@@ -33,6 +36,9 @@ export default function AppRoutes() {
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="sales" element={<SalesHistoryPage />} />
           <Route path="sales/:id" element={<SaleDetailPage />} />
+          <Route path="khata" element={<KhataPage />} />
+          <Route path="khata/:id" element={<CustomerLedgerPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
           <Route path="reports" element={<AnalyticsPage />} />
           <Route path="reports/daily" element={<DailySalesReport />} />
           <Route path="reports/products" element={<ProductReport />} />

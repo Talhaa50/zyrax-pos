@@ -1,16 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+// DEPRECATED: Supabase has been replaced with local SQLite database
+// This file is kept for backwards compatibility but is no longer used
+// All database operations now go through server/config/database.js
 
-dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-export const supabase =
-  supabaseUrl && supabaseKey && !supabaseUrl.includes('your_supabase')
-    ? createClient(supabaseUrl, supabaseKey)
-    : null;
+export const supabase = null;
 
 export function isSupabaseConfigured() {
-  return supabase !== null;
+  return false;
 }

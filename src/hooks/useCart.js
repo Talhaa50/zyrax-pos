@@ -1,19 +1,10 @@
 import { useState, useCallback } from 'react';
 
-// Generate idempotency key for transaction deduplication
-function generateIdempotencyKey(items, total) {
-  const itemsStr = items.map(i => `${i.product_id}:${i.quantity}`).join('|');
-  const key = `${itemsStr}:${total.toFixed(2)}:${Date.now()}`;
-  // Simple hash for transaction fingerprint
-  return btoa(key).substring(0, 32);
-}
-
 export function useCart() {
   const [items, setItems] = useState([]);
-  const [discount, setDiscount] = useState(0);
-  const [lastIdempotencyKey, setLastIdempotencyKey] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0); // flat PKR amount
 
-  const addItem = useCallback((product) => {
+  const addItem = useCallback(async (product) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.product_id === product.id);
       if (existing) {
@@ -54,32 +45,25 @@ export function useCart() {
 
   const clearCart = useCallback(() => {
     setItems([]);
-    setDiscount(0);
+    setDiscountAmount(0);
   }, []);
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const discountAmount = subtotal * (discount / 100);
-  const afterDiscount = subtotal - discountAmount;
-
-  const generateTransactionKey = useCallback(() => {
-    const key = generateIdempotencyKey(items, afterDiscount);
-    setLastIdempotencyKey(key);
-    return key;
-  }, [items, afterDiscount]);
+  // Clamp discount so it never exceeds subtotal
+  const clampedDiscount = Math.min(discountAmount, subtotal);
+  const afterDiscount = subtotal - clampedDiscount;
 
   return {
     items,
-    discount,
-    setDiscount,
+    discount: 0,                         // kept for API compat (percentage = 0)
+    discountAmount: clampedDiscount,      // flat PKR discount
+    setDiscountAmount,
     addItem,
     removeItem,
     updateQuantity,
     clearCart,
     subtotal,
-    discountAmount,
     afterDiscount,
     itemCount: items.reduce((sum, i) => sum + i.quantity, 0),
-    lastIdempotencyKey,
-    generateTransactionKey,
   };
 }

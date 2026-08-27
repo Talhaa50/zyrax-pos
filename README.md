@@ -1,251 +1,152 @@
-# Retailer POS
+# Zyrax POS
 
-Offline-first point of sale, inventory, product, and reporting system for small and medium retailers. The app is built to keep selling even when the internet drops: products, sales, inventory movements, settings, product images, theme presets, and sync queue state are stored locally first with IndexedDB, then synchronized through the backend when available.
+A full-stack Point of Sale (POS) and retail management system built for small-to-medium businesses. Track inventory, process sales, manage customer credit ledgers (Khata), monitor expenses, and view real-time reports — all in one place.
 
-## Highlights
+> **Origin:** Originally inspired by [Retailer-POS](https://github.com/codedbyhassan/Retailer-POS) by Hassan Agyemang Boakye. This version has been heavily rewritten with a custom Express + SQLite backend, local JWT authentication, and many new features.
 
-- Offline-first POS with local checkout, cart discounts, tax, payment method tracking, and printable purchase receipts.
-- Redesigned sales terminal with responsive desktop/tablet layout, product cards, stronger search, and a cleaner cart panel.
-- Professional receipt modal with item-level pricing, quantities, cashier, payment method, totals, receipt footer, and print support.
-- Product catalog with admin-side image uploads stored in IndexedDB, image compression, SKU/barcode/category metadata, and archive support.
-- Viewport-safe modals with wide admin forms, including a wider add/edit product modal.
-- Inventory management with stock adjustments, low-stock and out-of-stock states, inventory valuation, and movement history.
-- Reports hub with detailed analytics for revenue, profit, margin, product velocity, stock cover, dormant inventory value, payment mix, cashier performance, category performance, and top/slow movers.
-- Detailed report drill-downs for daily sales, products, and inventory, each with back navigation and report tabs.
-- App-wide business settings for currency, tax rate, receipt footer, low-stock threshold, business name, and visual preset.
-- Five runtime visual presets: Classic Blue, Emerald Market, Ruby Retail, Gold Ledger, and Violet Studio.
-- Sticky admin sidebar navigation and responsive mobile admin tabs.
-- Role-based access for admins and cashiers.
-- Optional Express/Supabase sync backend, with local memory fallback when Supabase is not configured.
+---
 
-## Tech Stack
+## ✨ Features
 
-| Layer | Tools |
-| --- | --- |
-| Frontend | React 19, Vite 6, React Router 7, Tailwind CSS |
-| Local data | IndexedDB via `idb` |
-| Backend | Node.js, Express |
-| Optional cloud | Supabase |
-| Styling | Tailwind utility system, CSS-variable brand presets, custom iOS-like cards and motion |
+- **Role-based Access Control** — Admin and Cashier roles with protected routes
+- **Product Management** — Add, edit, archive products with image uploads, SKUs, barcodes, and categories
+- **Point of Sale (POS)** — Fast checkout with barcode support, cart management, discount/tax handling, and multi-mode payment (Cash, Card, Mobile Money, Khata)
+- **Customer Ledger (Khata)** — Credit accounts for trusted customers with full transaction history and running balance
+- **Inventory Tracking** — Real-time stock levels, low-stock alerts, and adjustment audit logs
+- **Expense Management** — Record and categorize shop expenses with reporting integration
+- **Reports & Analytics** — Daily sales summary, revenue trends, top products, inventory valuation, and net profit calculation
+- **User Management** — Admins can create, edit, and deactivate cashier accounts
+- **Business Settings** — Customizable branding, currency, tax rate, receipt footer, and theme presets
+- **Dark Mode** — Full dark mode support across admin and cashier layouts
+- **A4 & Thermal Receipts** — Print professional invoices or compact 80mm thermal slips
 
-## Getting Started
+---
+
+## 🏗️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 19, Vite, Tailwind CSS, TanStack Query |
+| **Backend** | Express.js (Node.js) |
+| **Database** | SQLite (via `better-sqlite3`) |
+| **Auth** | Custom JWT with PBKDF2 password hashing |
+| **File Uploads** | Multer (local storage) |
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Node.js 18 or newer
+- Node.js 18+
 - npm
 
-### Install
+### 1. Install Dependencies
 
 ```bash
+# Install frontend dependencies
 npm install
-npm install --prefix server
+
+# Install backend dependencies
+cd server && npm install
 ```
 
-### Run the frontend
+### 2. Configure Environment
 
 ```bash
+# Server environment
+cp server/.env.example server/.env
+# Edit server/.env and set a strong AUTH_SECRET and passwords
+
+# Frontend environment
+cp .env.example .env.local
+# Edit .env.local if your backend runs on a different port
+```
+
+### 3. Seed the Database
+
+```bash
+cd server
+node seed-users.js
+```
+
+### 4. Run the App
+
+```bash
+# Terminal 1: Backend
+cd server && npm run dev
+
+# Terminal 2: Frontend
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:3001`
 
-### Run the backend
-
-```bash
-npm run server
-```
-
-The API defaults to `http://localhost:3001`.
-
-### Run both together
-
-```bash
-npm run dev:all
-```
-
-## Demo Accounts
+### 5. Login
 
 | Role | Email | Password |
-| --- | --- | --- |
-| Admin | `admin@retailer.com` | `admin123` |
-| Cashier | `cashier@retailer.com` | `cashier123` |
+|------|-------|----------|
+| Admin | `admin@retailer.com` | `admin123` (change in `.env`) |
+| Cashier | `cashier@retailer.com` | `cashier123` (change in `.env`) |
 
-The demo users and sample products are seeded into IndexedDB on first launch.
+---
 
-## Core Workflows
+## 📁 Project Structure
 
-### Admin
-
-- Manage products, prices, images, categories, SKU/barcode data, and stock thresholds.
-- Upload product images from the admin side; images are compressed and stored locally in IndexedDB.
-- Adjust inventory and review stock movement history.
-- Review sales history and transaction details.
-- Use the Reports hub for detailed analytics and drill down into daily, product, and inventory reports.
-- Configure business name, currency, tax rate, low-stock threshold, receipt footer, and visual preset.
-- Manage cashier/admin users.
-
-### Cashier
-
-- Search products or scan barcodes.
-- Add products to cart, adjust quantities, apply percentage discounts, and choose payment method.
-- Complete offline-capable checkout.
-- Print a detailed customer purchase receipt.
-
-## Reports
-
-The Reports hub is the recommended analytics entry point at `/admin/reports`.
-
-| Report | Details |
-| --- | --- |
-| Overview | Revenue, profit, margin, average order value, unit movement, category mix, payment methods, cashier performance, stock alerts, product movement detail |
-| Daily Sales | Date-filtered revenue, profit, transactions, average order, margin, hourly sales, payment mix, top products, unit movement, transaction table |
-| Product | Product revenue, profit, units sold, margins, best sellers, slow movers, revenue by category, stock cover, out-of-stock products |
-| Inventory | Inventory cost, retail value, potential profit, stock health, value by category, reorder risk, stock detail table |
-
-All drill-down reports include back navigation and tabs for moving between report views.
-
-## Visual Presets
-
-Settings include five runtime presets that update the app's brand color system without rebuilding:
-
-- Classic Blue
-- Emerald Market
-- Ruby Retail
-- Gold Ledger
-- Violet Studio
-
-Presets affect brand buttons, active states, chart bars, focus rings, and highlighted UI.
-
-## Offline-First Data Model
-
-The frontend stores operational data in IndexedDB:
-
-- `products`
-- `product_images`
-- `sales`
-- `sale_items`
-- `inventory_logs`
-- `users`
-- `settings`
-- `sync_queue`
-
-Product images are stored locally in `product_images` and referenced from products by `image_id`, keeping product records and sync payloads lighter while still supporting offline display.
-
-## Sync Behavior
-
-The app writes changes locally first. Syncable actions are queued in `sync_queue`:
-
-- `CREATE_PRODUCT`
-- `UPDATE_PRODUCT`
-- `ARCHIVE_PRODUCT`
-- `CREATE_SALE`
-- `INVENTORY_ADJUST`
-
-When online, the sync engine posts pending actions to `/api/sync`. If Supabase is configured, the backend upserts data into Supabase. If not, the backend uses an in-memory fallback so local development still works.
-
-## Environment
-
-Copy the example files and fill values as needed:
-
-```bash
-cp .env.example .env
-cp server/.env.example server/.env
+```
+zyrax-pos/
+├── server/               # Express API
+│   ├── config/
+│   │   └── database.js   # SQLite schema & connection
+│   ├── controllers/      # API business logic
+│   ├── middleware/       # Auth, upload, rate limiting
+│   ├── routes/           # API endpoints
+│   ├── data/             # SQLite database (ignored by git)
+│   └── public/uploads/   # Product images (ignored by git)
+│
+├── src/                  # React frontend
+│   ├── app/              # Routes & app shell
+│   ├── pages/            # Page components
+│   ├── components/       # Reusable UI components
+│   ├── hooks/            # Custom React hooks
+│   ├── services/api/     # HTTP client & API modules
+│   ├── store/            # Global state (theme, sidebar, settings)
+│   └── utils/            # Helpers & formatters
+│
+└── package.json
 ```
 
-Typical frontend setting:
+---
 
-```env
-VITE_API_URL=http://localhost:3001
-```
+## 🔑 API Endpoints
 
-Backend Supabase settings are optional. The app remains usable offline/local without them.
+| Resource | Endpoints |
+|----------|-----------|
+| Auth | `POST /api/auth/login`, `POST /api/auth/logout` |
+| Products | `GET`, `POST`, `PUT`, `DELETE /api/products` |
+| Sales | `GET`, `POST /api/sales` |
+| Inventory | `GET`, `POST /api/inventory/adjust` |
+| Customers | `GET`, `POST`, `DELETE /api/customers` |
+| Expenses | `GET`, `POST`, `DELETE /api/expenses` |
+| Reports | `GET /api/reports/daily`, `/revenue`, `/products` |
+| Users | `GET`, `POST`, `PUT`, `DELETE /api/user` |
+| Upload | `POST /api/upload/products` |
 
-## Documentation
+All protected endpoints require a `Bearer` token in the `Authorization` header.
 
-Complete guides for setup, configuration, and usage:
+---
 
-| Document | Purpose |
-| --- | --- |
-| [**Screenshots**](docs/screenshots/README.md) | Visual tour of all app pages with feature descriptions |
-| [**SUPABASE_SETUP.md**](docs/SUPABASE_SETUP.md) | Cloud backend configuration, SQL schema, sync conflict resolution, and troubleshooting |
-| [**ADMIN_FEATURES.md**](docs/ADMIN_FEATURES.md) | Complete admin reference: dashboard, inventory, sales, users, reports, security, and best practices |
-| [**RATE_LIMITING.md**](docs/RATE_LIMITING.md) | API rate limit policies, retry strategies, caching, and optimization |
+## ⚠️ Security Notes
 
-## Screenshots
+- Change the default `AUTH_SECRET` and passwords before deploying to production
+- Token lifetime is 30 days — re-login when expired
+- Image uploads are limited to 5MB (JPG, PNG, GIF, WebP)
+- Keep your `.env` files private — they are ignored by git
 
-A quick visual preview of the main workflows is included below. The full gallery is available in [docs/screenshots/README.md](docs/screenshots/README.md).
+---
 
-![Admin dashboard](docs/screenshots/02-admin-dashboard.png)
+## 📄 License
 
-![POS checkout experience](docs/screenshots/03-pos-page.png)
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
 
-![Inventory management](docs/screenshots/04-inventory.png)
-
-### New Features (v1.0.1)
-
-- **Dashboard Alerts**: Real-time low-stock alerts, sync status indicator, and hourly sales sparkline
-- **Barcode Lookup API**: Automatic product lookup by barcode with local caching (5 lookups/min limit)
-- **Duplicate Prevention**: Server-side transaction deduplication prevents accidental double-charges
-- **API Rate Limiting**: 50 sync requests/min and 10 barcode lookups/min per user (configurable)
-- **Skeleton Loaders**: Better perceived performance with loading states
-
-## Free APIs Worth Adding Next
-
-These all have free tiers and fit the roadmap well:
-
-| API | Use in this app |
-| --- | --- |
-| Open Exchange Rates or Frankfurter | Live exchange rates for multi-currency reporting and receipts |
-| Barcode Lookup API or Open Food Facts | Product lookup by barcode to speed up product creation |
-| Unsplash Source or Pexels | Optional product/category imagery for nicer placeholder visuals |
-| Resend | Email receipts and daily sales summaries |
-| Cloudinary | Hosted product image backup and transformations if you later want cloud media sync |
-| ipapi.co | Store/location-aware currency and locale defaults |
-| SheetDB or Google Sheets API | Export reports to spreadsheets for small business owners |
-
-## Scripts
-
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the Vite frontend |
-| `npm run build` | Build the frontend for production |
-| `npm run preview` | Preview the production build |
-| `npm run server` | Start the Express backend |
-| `npm run dev:all` | Start frontend and backend together |
-
-## Project Structure
-
-```text
-src/
-  app/                 App router
-  components/          Reusable UI, forms, tables, modals, product cards, analytics widgets
-  hooks/               Auth, cart, settings, sync, offline helpers
-  layouts/             Admin, cashier, and shell layouts
-  pages/               POS, products, inventory, reports, dashboards, settings
-  services/
-    indexeddb/         Local data stores
-    api/               API helpers
-    sync/              Sync queue and engine
-  store/               Lightweight global app store
-  utils/               Formatting, validation, image compression, IDs
-
-server/
-  controllers/         Request handlers
-  middleware/          Auth and role middleware
-  routes/              Express API routes
-  services/            Sync service and Supabase mapping
-  utils/               Logging
-```
-
-## Production Notes
-
-- Run `npm run build` before deployment.
-- Serve `dist/` with any static host.
-- Run the backend separately if remote sync is needed.
-- Configure Supabase tables to match the product, sale, sale item, and inventory log payloads used by `server/services/syncService.js`.
-- IndexedDB data is browser-local. Clearing site data resets local products, images, sales, settings, presets, and queued sync items.
-
-## Current Status
-
-This project includes a complete offline-first retail workflow: admin product and inventory management, POS checkout, receipt printing, app-wide currency settings, visual presets, IndexedDB product images, sales history, sticky navigation, viewport-safe modals, and detailed reporting analytics.
+Original work Copyright (c) 2026 Hassan Agyemang Boakye.

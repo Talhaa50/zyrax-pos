@@ -7,6 +7,8 @@ const navItems = [
   { to: '/admin/products', label: 'Products', icon: BoxIcon },
   { to: '/admin/inventory', label: 'Inventory', icon: LayersIcon },
   { to: '/admin/sales', label: 'Sales', icon: ReceiptIcon },
+  { to: '/admin/khata', label: 'Khata', icon: KhataIcon },
+  { to: '/admin/expenses', label: 'Expenses', icon: ExpenseIcon },
   { to: '/admin/reports', label: 'Reports', icon: ChartIcon },
   { to: '/admin/settings/business', label: 'Settings', icon: SettingsIcon },
   { to: '/admin/settings/users', label: 'Users', icon: UsersIcon },
@@ -48,6 +50,27 @@ function ReceiptIcon({ className }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
       <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2l-3 2-3-2-3 2-3-2-3 2-3-2Z" />
       <path d="M8 10h8M8 14h5" />
+    </svg>
+  );
+}
+
+function KhataIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      <line x1="8" y1="7" x2="16" y2="7" />
+      <line x1="8" y1="11" x2="14" y2="11" />
+    </svg>
+  );
+}
+
+function ExpenseIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+      <path d="M6 15h2M16 15h2" />
     </svg>
   );
 }
@@ -97,8 +120,8 @@ export default function AdminLayout() {
       <MobileAdminNav />
 
       <div className="flex flex-1">
-        <aside className="sticky top-[3.75rem] hidden h-[calc(100vh-3.75rem)] w-[15.5rem] shrink-0 flex-col self-start border-r border-black/[0.04] bg-white/60 backdrop-blur-ios dark:border-white/[0.06] dark:bg-surface-dark/60 md:flex">
-          <nav className="flex-1 space-y-1 p-3 pt-5">
+        <aside className="sticky top-[3.75rem] hidden h-[calc(100vh-3.75rem)] w-[15.5rem] shrink-0 flex-col self-start border-r border-black/[0.04] bg-white/60 backdrop-blur-ios dark:border-white/[0.06] dark:bg-[#1a1917]/90 md:flex">
+          <nav className="flex-1 space-y-1 p-3 pt-5 overflow-y-auto">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -108,7 +131,7 @@ export default function AdminLayout() {
                   `group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ease-ios active:scale-[0.98] ${
                     isActive
                       ? 'bg-brand-500/10 text-brand-700 shadow-ios-inset dark:bg-brand-500/15 dark:text-brand-300'
-                      : 'text-gray-600 hover:bg-black/[0.04] dark:text-gray-400 dark:hover:bg-white/[0.06]'
+                      : 'text-gray-600 hover:bg-black/[0.04] dark:text-[#a8a29e] dark:hover:bg-white/[0.06] dark:hover:text-[#f0ede8]'
                   }`
                 }
               >
@@ -116,7 +139,7 @@ export default function AdminLayout() {
                   <>
                     <item.icon
                       className={`h-[1.125rem] w-[1.125rem] transition-colors ${
-                        isActive ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                        isActive ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-[#f0ede8]'
                       }`}
                     />
                     {item.label}
@@ -129,15 +152,15 @@ export default function AdminLayout() {
 
             <NavLink
               to="/pos"
-              className="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium text-gray-600 transition-all duration-200 ease-ios hover:bg-black/[0.04] active:scale-[0.98] dark:text-gray-400 dark:hover:bg-white/[0.06]"
+              className="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium text-gray-600 transition-all duration-200 ease-ios hover:bg-black/[0.04] active:scale-[0.98] dark:text-[#a8a29e] dark:hover:bg-white/[0.06] dark:hover:text-[#f0ede8]"
             >
-              <PosIcon className="h-[1.125rem] w-[1.125rem] text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
+              <PosIcon className="h-[1.125rem] w-[1.125rem] text-gray-400 group-hover:text-gray-600 dark:group-hover:text-[#f0ede8]" />
               Open POS
             </NavLink>
           </nav>
         </aside>
 
-        <main className="flex-1 overflow-auto p-5 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-auto p-5 sm:p-6 lg:p-8 bg-[var(--bg-base)]">
           <Outlet />
         </main>
       </div>
