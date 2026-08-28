@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      AUTH_SECRET: ${AUTH_SECRET:-replace_with_a_long_random_secret_at_least_32_characters}
+      RETAILER_ADMIN_PASSWORD: ${RETAILER_ADMIN_PASSWORD:-admin123}
+      RETAILER_CASHIER_PASSWORD: ${RETAILER_CASHIER_PASSWORD:-cashier123}
+      BARCODE_API_KEY: ${BARCODE_API_KEY:-}
+    volumes:
+      - ./server/data:/app/server/data
+      - ./server/public/uploads:/app/server/public/uploads
+    restart: unless-stopped
