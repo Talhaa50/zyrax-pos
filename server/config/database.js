@@ -426,6 +426,71 @@ export function closeDatabase() {
   console.log('[SQLite] Database connection closed');
 }
 
+/**
+ * Seed database with default admin and cashier users
+ */
+import crypto from 'node:crypto';
+
+function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    const salt = crypto.randomBytes(32).toString('hex');
+    crypto.pbkdf2(password, salt, 10000, 64, 'sha256', (err, derivedKey) => {
+      if (err) return reject(err);
+      resolve({
+        hash: derivedKey.toString('hex'),
+        salt: salt,
+      });
+    });
+  });
+}
+
+export async function seedDatabase() {
+  try {
+    // Check if users already exist
+    const existing = db.prepare('SELECT COUNT(*) as count FROM users').get();
+    
+    if (existing.count > 0) {
+      return; // Users already seeded, skip
+    }
+
+    // Create admin user
+    const adminPassword = process.env.RETAILER_ADMIN_PASSWORD || 'admin123';
+    const adminCreds = await hashPassword(adminPassword);
+
+    db.prepare(`
+      INSERT INTO users (id, name, email, role, password_hash, password_salt, active, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    `).run(
+      'admin_1',
+      'Admin User',
+      'admin@retailer.com',
+      'admin',
+      adminCreds.hash,
+      adminCreds.salt
+    );
+
+    // Create cashier user
+    const cashierPassword = process.env.RETAILER_CASHIER_PASSWORD || 'cashier123';
+    const cashierCreds = await hashPassword(cashierPassword);
+
+    db.prepare(`
+      INSERT INTO users (id, name, email, role, password_hash, password_salt, active, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    `).run(
+      'cashier_1',
+      'Cashier User',
+      'cashier@retailer.com',
+      'cashier',
+      cashierCreds.hash,
+      cashierCreds.salt
+    );
+
+    console.log('[SQLite] Default users seeded: admin@retailer.com, cashier@retailer.com');
+  } catch (err) {
+    console.error('[SQLite] Seed error:', err.message);
+  }
+}
+
 // Initialize schema on module load
 initializeSchema();
 

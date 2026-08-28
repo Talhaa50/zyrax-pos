@@ -15,6 +15,7 @@ import customerRoutes from './routes/customerRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import { logger } from './utils/logger.js';
 import { barcodeRateLimiter } from './middleware/rateLimitMiddleware.js';
+import { seedDatabase } from './config/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -63,9 +64,12 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   logger('info', `Retailer API running on port ${PORT}`);
   logger('info', 'Using SQLite database at server/data/pos_data.db');
   logger('info', 'Product images stored at server/public/uploads/products/');
   logger('info', 'Direct API mode - no sync queue, instant operations');
+  
+  // Seed default users on startup
+  await seedDatabase();
 });
