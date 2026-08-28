@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
@@ -29,10 +30,9 @@ app.use(express.json());
 // Serve static files (product images)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-// Serve frontend build in production
-const isProduction = process.env.NODE_ENV === 'production';
-if (isProduction) {
-  const frontendDistPath = path.join(__dirname, '..', 'dist');
+// ALWAYS serve frontend build if dist folder exists (works in production AND development with pre-built dist)
+const frontendDistPath = path.join(__dirname, '..', 'dist');
+if (existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
 }
 
@@ -52,10 +52,11 @@ app.use('/api/user', userRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/expenses', expenseRoutes);
 
-// Catch-all route for client-side routing (production only)
-if (isProduction) {
+// Catch-all route for client-side routing (SPA fallback)
+// If dist exists, serve index.html for any non-API route
+if (existsSync(frontendDistPath)) {
   app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
 
