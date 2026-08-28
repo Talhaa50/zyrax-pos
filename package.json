@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:frontend": "vite",
+    "dev:backend": "npm run dev --prefix server",
+    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "vite build",
-    "preview": "vite preview",
-    "server": "npm run dev --prefix server",
-    "dev:all": "concurrently \"npm run dev\" \"npm run server\""
+    "start": "node server/index.js",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.67.1",

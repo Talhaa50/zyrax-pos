@@ -25,5 +25,5 @@ export const productsApi = {
   
   // Get image URL
   getImageUrl: (filename) => 
-    filename ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/uploads/products/${filename}` : null,
+    filename ? `/uploads/products/${filename}` : null,
 };

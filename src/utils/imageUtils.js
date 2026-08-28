@@ -55,9 +55,7 @@ export function compressImage(file) {
   });
 }
 
-const API_BASE = typeof window !== 'undefined'
-  ? (import.meta.env?.VITE_API_URL || 'http://localhost:3001')
-  : 'http://localhost:3001';
+const API_BASE = '/api';
 
 // Build a URL for a product image stored on the Express server
 export function getProductImageSrc(product) {

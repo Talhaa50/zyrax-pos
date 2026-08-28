@@ -28,6 +28,13 @@ app.use(express.json());
 // Serve static files (product images)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
+// Serve frontend build in production
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction) {
+  const frontendDistPath = path.join(__dirname, '..', 'dist');
+  app.use(express.static(frontendDistPath));
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -43,6 +50,13 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/expenses', expenseRoutes);
+
+// Catch-all route for client-side routing (production only)
+if (isProduction) {
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  });
+}
 
 app.use((err, _req, res, _next) => {
   logger('error', err.message);

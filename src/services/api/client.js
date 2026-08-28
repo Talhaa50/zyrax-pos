@@ -3,7 +3,7 @@
  * No IndexedDB, no sync queue, no offline mode
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('retailer_token');

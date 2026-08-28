@@ -16,14 +16,12 @@ const empty = {
   image_id: '',
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 // Build a URL for an image filename stored on the server
 function getImageUrl(imageId) {
   if (!imageId) return null;
   // If it's already a full URL or data URL, return as-is
   if (imageId.startsWith('http') || imageId.startsWith('data:')) return imageId;
-  return `${API_BASE}/uploads/products/${imageId}`;
+  return `/uploads/products/${imageId}`;
 }
 
 export default function ProductForm({ initial, onSubmit, onCancel, loading }) {
