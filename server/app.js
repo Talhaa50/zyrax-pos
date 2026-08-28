@@ -33,7 +33,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 // ALWAYS serve frontend build if dist folder exists (works in production AND development with pre-built dist)
 const frontendDistPath = path.join(__dirname, '..', 'dist');
 if (existsSync(frontendDistPath)) {
+  console.log(`[Frontend] Serving built frontend from: ${frontendDistPath}`);
   app.use(express.static(frontendDistPath));
+} else {
+  console.log(`[Frontend] WARNING: dist folder not found at ${frontendDistPath}. Frontend will NOT be served.`);
 }
 
 app.get('/api/health', (_req, res) => {
@@ -67,6 +70,7 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, async () => {
   logger('info', `Retailer API running on port ${PORT}`);
+  logger('info', `Environment: ${process.env.NODE_ENV || 'not set'}`);
   logger('info', 'Using SQLite database at server/data/pos_data.db');
   logger('info', 'Product images stored at server/public/uploads/products/');
   logger('info', 'Direct API mode - no sync queue, instant operations');

@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: zyrax-pos
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: RETAILER_ADMIN_PASSWORD
+        value: admin123
+      - key: RETAILER_CASHIER_PASSWORD
+        value: cashier123
+      - key: PORT
+        value: 10000
